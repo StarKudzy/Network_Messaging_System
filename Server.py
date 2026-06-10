@@ -9,6 +9,23 @@ clients = [] #lists of all connected clients
 usernames = [] # lists of the usernames of connected clients
 client_rooms = {} # dictionary that tracks which room each client is in
 
+# broadcast messages to all clients except the sender
+def broadcast(message, sender_socket = None, room_name='main_chat'):
+    
+    if room_name in rooms:
+        for client in rooms[room_name]: #loop throgh every client in this room
+            if client != sender_socket:
+                try:
+                    client.send(message.encode('utf-8'))
+                    print("message send successfully")
+                except:
+                    #if sending fails maybe the client is disconnected
+                    
+                    if client in clients:
+                        index = clients.index(client)
+                        username = username[index]
+                        print(f"client {username} is disconnected")    
+            
 
 #main function
 def main():
