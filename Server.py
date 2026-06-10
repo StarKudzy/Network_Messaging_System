@@ -9,11 +9,19 @@ clients = [] #lists of all connected clients
 usernames = [] # lists of the usernames of connected clients
 client_rooms = {} # dictionary that tracks which room each client is in
 
+rooms = {
+    'main_chat': [],
+    'dresses': [],
+    'shoes': [],
+    'orders': [],
+    'shipping': []
+}
+
 
 #main function
 def main():
     #creating the server socket
-     server = socket.socket(socket.AF_INET;socket.SOCK_STREAM)
+     server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
      
 #try and catch  block
 
