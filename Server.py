@@ -16,8 +16,24 @@ rooms = {
     'orders': [],
     'shipping': []
 }
-
-
+#function to switch room between clients
+def switch_room(client, new_room):
+    username = get_username(client)
+    
+    if new_room not in rooms:
+        client.send(f"Room '{new_room}' does not exixt". encode())
+        return
+    
+    old_room = client_rooms[client]
+    
+    rooms[old_room].remove(client)
+    rooms[new_room].append(client)
+    client_rooms[client] = new_room
+    
+    client.send(f"You switched to {new_room}".encode('utf-8'))
+    broadcast(f"{username} left the room, client, old room")
+    broadcast(f"{username} joined the room", client, new_room)
+    
         
 
 #function to define username
@@ -63,14 +79,38 @@ def handle_client(client):
         
         print(f"{username} joined main chat")
         client.send("You joined main chat".encode('utf-8'))
-        
+       
+            
+            
         broadcast(f"{username} has joined the chat", client, 'main_chat')
+        
         
         #keep listening for messages
         while True:
             message = client.recv(1024).decode('utf-8')
             
             if message:
+                
+              #switch room
+               
+                 if message.startswitch('/switch'):
+                    parts = message.split()
+            
+                    if len(parts) == 2:
+                        new_room = parts[1]
+                        switch_room(client, new_room)
+                
+                    else:
+                        client.send("Switch room name".encode('utf-8'))    
+            
+                 else:
+                     current_room = client_rooms[client]
+                     broadcast(f"{username} : {message}", client, current_room)
+            
+                
+            
+            
+            else:
                 current_room = client_rooms[client]
                 broadcast(f"{username}: {message}", client, current_room)
                 
@@ -112,4 +152,4 @@ def main():
         
 if __name__== '__main__':
     main()     
-         
+        
