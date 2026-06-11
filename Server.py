@@ -6,8 +6,27 @@ PORT= 1234
 LISTENER_LIMIT = 5
 
 clients = [] #lists of all connected clients
-usernames = [] # lists of the usernames of connected clients
+username = [] # lists of the usernames of connected clients
 client_rooms = {} # dictionary that tracks which room each client is in
+
+rooms = {
+    'main_chat': [],
+    'dresses': [],
+    'shoes': [],
+    'orders': [],
+    'shipping': []
+}
+
+
+#function to define username
+def get_username(client):
+    if client in clients:
+        index = clients.index(client)
+        return username[index]
+    
+    return "unknown"
+
+
 
 # broadcast messages to all clients except the sender
 def broadcast(message, sender_socket = None, room_name='main_chat'):
@@ -20,20 +39,11 @@ def broadcast(message, sender_socket = None, room_name='main_chat'):
                     print("message send successfully")
                 except:
                     #if sending fails maybe the client is disconnected
-                    
-                    if client in clients:
-                        index = clients.index(client)
                         
-                        username = username[index]
+                        username = get_username(client)
                         print(f"client {username} is disconnected")    
             
-rooms = {
-    'main_chat': [],
-    'dresses': [],
-    'shoes': [],
-    'orders': [],
-    'shipping': []
-}
+
 
 
 #main function
