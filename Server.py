@@ -84,12 +84,27 @@ def handle_client(client):
             
         broadcast(f"{username} has joined the chat", client, 'main_chat')
         
+       
         
         #keep listening for messages
         while True:
             message = client.recv(1024).decode('utf-8')
             
             if message:
+
+                #Check if user wants to create a new chat room
+
+                 if message.startswith('/create'):
+                  parts = message.split()
+
+                  if len(parts) == 2:
+                   room_name = parts[1]
+                   create_room(client, room_name)
+                  else:
+                   client.send("ERROR! Usage: /create room_name".encode('utf-8'))
+
+              
+               current_room = client_rooms[client]
                 
               #switch room
                
@@ -117,7 +132,15 @@ def handle_client(client):
                 
                 
     except:
-        print("client disconnected")    
+        print("client disconnected")  
+
+#creating chat rooms
+def create_room(client, room_name):
+    if room_name in rooms:
+        client.send(f"Room '{room_name}' already exists".encode('utf-8'))
+    else:
+        rooms[room_name] = []
+        client.send(f"Created '{room_name}' room successfully".encode('utf-8'))
 
 
 
