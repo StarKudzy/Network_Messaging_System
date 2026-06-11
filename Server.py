@@ -78,14 +78,14 @@ def handle_client(client):
                  if message.startswith('/create'):
                   parts = message.split()
 
-            if len(parts) == 2:
-                room_name = parts[1]
-                create_room(client, room_name)
-            else:
-                client.send("ERROR! Usage: /create room_name".encode('utf-8'))
+                  if len(parts) == 2:
+                   room_name = parts[1]
+                   create_room(client, room_name)
+                  else:
+                   client.send("ERROR! Usage: /create room_name".encode('utf-8'))
 
-
-                current_room = client_rooms[client]
+              
+               current_room = client_rooms[client]
                 broadcast(f"{username}: {message}", client, current_room)
                 
                 
