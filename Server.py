@@ -6,7 +6,7 @@ PORT= 1234
 LISTENER_LIMIT = 5
 
 clients = [] #lists of all connected clients
-username = [] # lists of the usernames of connected clients
+usernames = [] # lists of the usernames of connected clients
 client_rooms = {} # dictionary that tracks which room each client is in
 
 rooms = {
@@ -18,11 +18,13 @@ rooms = {
 }
 
 
+        
+
 #function to define username
 def get_username(client):
     if client in clients:
         index = clients.index(client)
-        return username[index]
+        return usernames[index]
     
     return "unknown"
 
@@ -43,6 +45,40 @@ def broadcast(message, sender_socket = None, room_name='main_chat'):
                         username = get_username(client)
                         print(f"client {username} is disconnected")    
             
+            
+            
+            
+            
+# Receives the username and places the client into the main chat
+#continuosly listens for messages from the connected client
+def handle_client(client):
+    try:
+        username = client.recv(1024).decode('utf-8') # receives the username from the client 
+        
+        clients.append(client)
+        usernames.append(username)
+        
+        client_rooms[client] = 'main_chat'
+        rooms['main_chat'].append(client)
+        
+        print(f"{username} joined main chat")
+        client.send("You joined main chat".encode('utf-8'))
+        
+        broadcast(f"{username} has joined the chat", client, 'main_chat')
+        
+        #keep listening for messages
+        while True:
+            message = client.recv(1024).decode('utf-8')
+            
+            if message:
+                current_room = client_rooms[client]
+                broadcast(f"{username}: {message}", client, current_room)
+                
+                
+                
+    except:
+        print("client disconnected")    
+
 
 
 
@@ -69,6 +105,8 @@ def main():
      while 1:
         client, address = server.accept()
         print(f"Successfully connected to client {address[0]} {address[1]}")
+        
+        threading.Thread(target=handle_client, args=(client,)).start
         
         
         
