@@ -27,11 +27,19 @@ def broadcast(message, sender_socket = None, room_name='main_chat'):
                         username = username[index]
                         print(f"client {username} is disconnected")    
             
+rooms = {
+    'main_chat': [],
+    'dresses': [],
+    'shoes': [],
+    'orders': [],
+    'shipping': []
+}
+
 
 #main function
 def main():
     #creating the server socket
-     server = socket.socket(socket.AF_INET;socket.SOCK_STREAM)
+     server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
      
 #try and catch  block
 
