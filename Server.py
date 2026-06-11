@@ -21,7 +21,7 @@ def switch_room(client, new_room):
     username = get_username(client)
     
     if new_room not in rooms:
-        client.send(f"Room '{new_room}' does not exixt". encode())
+        client.send(f"Room '{new_room}' does not exist".encode('utf-8'))
         return
     
     old_room = client_rooms[client]
@@ -62,7 +62,13 @@ def broadcast(message, sender_socket = None, room_name='main_chat'):
                         print(f"client {username} is disconnected")    
             
             
-            
+ #creating chat rooms
+def create_room(client, room_name):
+    if room_name in rooms:
+        client.send(f"Room '{room_name}' already exists".encode('utf-8'))
+    else:
+        rooms[room_name] = []
+        client.send(f"Created '{room_name}' room successfully".encode('utf-8'))           
             
             
 # Receives the username and places the client into the main chat
@@ -79,6 +85,15 @@ def handle_client(client):
         
         print(f"{username} joined main chat")
         client.send("You joined main chat".encode('utf-8'))
+
+        #Sending available rooms to the client
+        available_rooms = ", ".join(rooms.keys())
+        client.send(
+            f"Available rooms: {available_rooms}\n"
+            "Use /switch room_name to join a chat room\n"
+            "Use /create room_name to create a chat room".encode('utf-8')
+
+        )
        
             
             
@@ -90,57 +105,50 @@ def handle_client(client):
         while True:
             message = client.recv(1024).decode('utf-8')
             
-            if message:
+            
 
                 #Check if user wants to create a new chat room
 
-                 if message.startswith('/create'):
-                  parts = message.split()
+            if message.startswith('/create'):
+                parts = message.split()
 
-                  if len(parts) == 2:
-                   room_name = parts[1]
-                   create_room(client, room_name)
-                  else:
+                if len(parts) == 2:
+                 room_name = parts[1]
+                 create_room(client, room_name)
+                else:
                    client.send("ERROR! Usage: /create room_name".encode('utf-8'))
 
               
-               current_room = client_rooms[client]
+               
                 
               #switch room
                
-                 if message.startswitch('/switch'):
-                    parts = message.split()
+            elif message.startswith('/switch'):
+                parts = message.split()
             
-                    if len(parts) == 2:
-                        new_room = parts[1]
-                        switch_room(client, new_room)
+                if len(parts) == 2:
+                    new_room = parts[1]
+                    switch_room(client, new_room)
                 
-                    else:
-                        client.send("Switch room name".encode('utf-8'))    
+                else:
+                    client.send("Switch room name".encode('utf-8'))    
             
-                 else:
-                     current_room = client_rooms[client]
-                     broadcast(f"{username} : {message}", client, current_room)
-            
-                
-            
-            
+
             else:
                 current_room = client_rooms[client]
-                broadcast(f"{username}: {message}", client, current_room)
+                broadcast(f"{username} : {message}", client, current_room)
+            
+                
+            
+            
+            
                 
                 
                 
     except:
         print("client disconnected")  
 
-#creating chat rooms
-def create_room(client, room_name):
-    if room_name in rooms:
-        client.send(f"Room '{room_name}' already exists".encode('utf-8'))
-    else:
-        rooms[room_name] = []
-        client.send(f"Created '{room_name}' room successfully".encode('utf-8'))
+
 
 
 
