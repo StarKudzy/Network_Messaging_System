@@ -9,6 +9,8 @@ clients = [] #lists of all connected clients
 usernames = [] # lists of the usernames of connected clients
 client_rooms = {} # dictionary that tracks which room each client is in
 
+disconnected_users = {} #stores users who are disconnected
+
 rooms = {
     'main_chat': [],
     'dresses': [],
@@ -62,6 +64,40 @@ def broadcast(message, sender_socket = None, room_name='main_chat'):
                         print(f"client {username} is disconnected")    
             
             
+#function to remove client when the disconnect
+def remove_client(client):
+    if client not in clients:
+        return
+    
+    #get info about the user and which room they are in
+    index = clients.index(client)
+    username = usernames[index]
+    current_room = client_rooms[client]
+
+    #save room for reconnection
+    disconnected_users[username] = current_room
+
+    #remove client from the room
+    if client in rooms[current_room]:
+        rooms[current_room].remove.client
+
+    #remove client from tracking lists
+    clients.remove(client)
+    username.pop(index)
+
+    del client_rooms[client]
+
+    #Notify the room
+    broadcast(
+        f"{username} is disconnected", None, current_room
+    )
+    
+    #close the socket connection
+    client.close()
+    print(f"{username} disconnected")
+
+
+
  #creating chat rooms
 def create_room(client, room_name):
     if room_name in rooms:
@@ -77,6 +113,34 @@ def handle_client(client):
     try:
         username = client.recv(1024).decode('utf-8') # receives the username from the client 
         
+        #checks whether the user has disconnected before
+        if username in disconnected_users:
+            #get the previous room
+            room = disconnected_users[username]
+            # add to the list of clients
+            clients.append(client)
+            usernames.append(username)
+            #put them in the same room
+            client_rooms[client] = room
+            rooms[room].append(client)
+
+            del disconnected_users[username] #remove from disconnected users list
+
+            client.send(
+                f"Welcome back, you have reconnected to {room}".encode('utf-8')
+            )
+        else:  #New user
+            client.append(client)
+            usernames.append(username)
+
+            client_rooms[client] = 'main_chat'
+            rooms["main_chat"].append(client)
+
+            client.send(
+                "You joined main chat".encode('utf-8')
+            )
+
+
         clients.append(client)
         usernames.append(username)
         
@@ -105,6 +169,8 @@ def handle_client(client):
         while True:
             message = client.recv(1024).decode('utf-8')
             
+            if not message: #if message is empty disconnect
+                break
             
 
                 #Check if user wants to create a new chat room
@@ -146,7 +212,11 @@ def handle_client(client):
                 
                 
     except:
-        print("client disconnected")  
+        pass
+    
+    finally:
+        remove_client(client)
+         
 
 
 
