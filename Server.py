@@ -8,33 +8,18 @@ LISTENER_LIMIT = 5
 clients = [] #lists of all connected clients
 usernames = [] # lists of the usernames of connected clients
 client_rooms = {} # dictionary that tracks which room each client is in
+pending_invites={} #dictionary to store all pending invites to chat rooms
 
 rooms = {
     'main_chat': [],
     'dresses': [],
     'shoes': [],
-    'orders': [],
-    'shipping': []
+    'pants': [],
+    'shirts': []
 }
-#function to switch room between clients
-def switch_room(client, new_room):
-    username = get_username(client)
-    
-    if new_room not in rooms:
-        client.send(f"Room '{new_room}' does not exist".encode('utf-8'))
-        return
-    
-    old_room = client_rooms[client]
-    
-    rooms[old_room].remove(client)
-    rooms[new_room].append(client)
-    client_rooms[client] = new_room
-    
-    client.send(f"You switched to {new_room}".encode('utf-8'))
-    broadcast(f"{username} left the room, client, old room")
-    broadcast(f"{username} joined the room", client, new_room)
-    
-        
+     
+
+
 
 #function to define username
 def get_username(client):
@@ -43,6 +28,8 @@ def get_username(client):
         return usernames[index]
     
     return "unknown"
+
+
 
 
 
@@ -62,13 +49,106 @@ def broadcast(message, sender_socket = None, room_name='main_chat'):
                         print(f"client {username} is disconnected")    
             
             
+            
+            
+            
+            
  #creating chat rooms
 def create_room(client, room_name):
     if room_name in rooms:
         client.send(f"Room '{room_name}' already exists".encode('utf-8'))
     else:
         rooms[room_name] = []
-        client.send(f"Created '{room_name}' room successfully".encode('utf-8'))           
+        client.send(f"Created '{room_name}' room successfully".encode('utf-8'))    
+        
+        
+        
+        
+        
+        
+        
+#function to switch chat rooms
+def switch_room(client, new_room):
+    username = get_username(client)
+    
+    if new_room not in rooms:
+        client.send(f"Room '{new_room}' does not exist".encode('utf-8'))
+        return
+    
+    old_room = client_rooms[client]
+    
+    rooms[old_room].remove(client)
+    rooms[new_room].append(client)
+    client_rooms[client] = new_room
+    
+    client.send(f"You switched to {new_room}".encode('utf-8'))
+    broadcast(f"{username} left the room ", client, old_room)
+    broadcast(f"{username} joined the room", client, new_room)          
+    
+    
+    
+    
+    
+    
+#function to invite clients to a chat room
+def invite_user(client, invited_username,room_name):
+    
+    #check if the room exists in rooms list
+    if room_name not in rooms:
+        client.send("Room not found".encode('utf-8'))
+    
+    #check if the username  exists in the users list
+    if invited_username not in usernames:
+        client.send("User not found".encode('utf-8'))
+        return
+    
+   
+    
+     
+    #find the position of the invited user in the users list,get user socket
+    index= usernames.index(invited_username)
+    invited_client= clients[index]
+    
+    #check if invited user is already in the room:
+    if invited_client  in rooms[room_name]:
+      client.send("User already in the room".encode('utf-8'))
+      return
+    
+    pending_invites[invited_client] = room_name
+  
+    
+    invited_client.send(f"You have been invited to {room_name}.Type /accept to join or /decline to reject.".encode('utf-8'))         
+    client.send(f"invitation sent to {invited_username}".encode('utf-8'))        
+            
+            
+            
+            
+ #allows users to accept invites           
+def accept_invite(client):
+    #check if the client has any pending inivites
+    if client not in pending_invites:
+        client.send("You have no pending invitations".encode('utf-8'))
+        return
+    
+    room_name = pending_invites[client] #get room name
+    del pending_invites[client]# remove invite when client accepts
+    switch_room(client, room_name)
+    
+   
+
+#allow users to decline invite offers
+def decline_invite(client):
+    #check if client has any pending invitations
+    if client not in pending_invites:
+        client.send("You have no pending inivitations.".encode('utf-8'))
+        return
+    
+    room_name = pending_invites[client]
+    del pending_invites[client]
+    client.send(f"You declined the invitation to {room_name}".encode('utf-8'))
+    
+    
+                
             
             
 # Receives the username and places the client into the main chat
@@ -84,31 +164,26 @@ def handle_client(client):
         rooms['main_chat'].append(client)
         
         print(f"{username} joined main chat")
-        client.send("You joined main chat".encode('utf-8'))
+        client.send("You joined main chat\n".encode('utf-8'))
 
         #Sending available rooms to the client
         available_rooms = ", ".join(rooms.keys())
-        client.send(
-            f"Available rooms: {available_rooms}\n"
-            "Use /switch room_name to join a chat room\n"
-            "Use /create room_name to create a chat room".encode('utf-8')
-
-        )
-       
-            
-            
+        client.send((
+           f"Available rooms: {available_rooms}\n"
+           "Commands to use :\n"
+           "/switch room_name  - join a chat room\n"
+           "/create room_name  - create a new chat room\n"
+           "/invite username room_name  - invite a user to a room\n"
+           "/accept  - accept a room invitation\n"
+           "/decline  - decline a room invitation"
+           ).encode('utf-8'))
         broadcast(f"{username} has joined the chat", client, 'main_chat')
-        
-       
         
         #keep listening for messages
         while True:
             message = client.recv(1024).decode('utf-8')
             
-            
-
-                #Check if user wants to create a new chat room
-
+         #Check if user wants to create a new chat room
             if message.startswith('/create'):
                 parts = message.split()
 
@@ -118,11 +193,8 @@ def handle_client(client):
                 else:
                    client.send("ERROR! Usage: /create room_name".encode('utf-8'))
 
-              
-               
-                
-              #switch room
-               
+             
+         #check if user wants to switch rooms      
             elif message.startswith('/switch'):
                 parts = message.split()
             
@@ -132,21 +204,42 @@ def handle_client(client):
                 
                 else:
                     client.send("Switch room name".encode('utf-8'))    
+          
+         
+         #check if user wants to invite another user to a room
+            elif message.startswith('/invite'):
+                parts = message.split()
+                 
+                 
+                if len(parts) == 3:
+                    invite_username = parts[1]    
+                    room_name = parts[2]   
+                    invite_user(client, invite_username, room_name)
+                 
+                 
+                
+                else:
+                    client.send("ERROR! Usage: /invite username room_name".encode('utf-8'))
+                    
+                    
+              #check if user accepts a room invitation      
+            elif message == '/accept':
+                accept_invite(client)
+                
+             #check if user declined the invitation   
+            elif message == '/decline':
+                decline_invite(client)    
+                  
+                         
             
 
             else:
                 current_room = client_rooms[client]
                 broadcast(f"{username} : {message}", client, current_room)
-            
-                
-            
-            
-            
-                
-                
-                
-    except:
-        print("client disconnected")  
+                      
+    except Exception as e:
+       
+     print(f"Client disconnected because of error: {e}") 
 
 
 
@@ -161,8 +254,7 @@ def main():
 #try and catch  block
 
      try:
-    # provide server with an address in the form of HOST and PORT
-    
+# provide server with an address in the form of HOST and PORT
          server.bind((HOST,PORT))
     
      except:
@@ -170,14 +262,16 @@ def main():
          
          
     # set server limit
-     server.listen(LISTENER_LIMIT)     
+     server.listen(LISTENER_LIMIT)    
+     print(f"Server is listening on {HOST}:{PORT}")
+     print("Waiting for clients to connect...")
     
     #server to keep listening to new client connections
      while 1:
         client, address = server.accept()
         print(f"Successfully connected to client {address[0]} {address[1]}")
         
-        threading.Thread(target=handle_client, args=(client,)).start
+        threading.Thread(target=handle_client, args=(client,)).start()
         
         
         
