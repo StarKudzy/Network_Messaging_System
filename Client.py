@@ -7,6 +7,30 @@ PORT = 1234
 
 
 
+#fn to continuosly receive messages from the server
+def receive_messages(client):
+    while True:
+        
+        try:
+            message = client.recv(1024).decode('utf-8')
+            
+            if message:
+                print(message)
+                
+            else:
+                print("Disconnected from server")    
+                break 
+            
+        except:
+            print("connection is closed")
+            break
+
+
+
+
+
+
+
 def main():
     #creating a socket
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -18,7 +42,22 @@ def main():
         print(f"Connected to server")
     except:
         print(f"Unable to connect to server{HOST} {PORT}")
-
+        return
+    
+    
+    #ask for username and send it to server
+    username = input("Enter your username:  ")
+    client.send(username.encode('utf-8'))
+    
+    
+    threading.Thread(target=receive_messages, args=(client,)).start()
+    
+    #sending messages loop
+    while True:
+        message = input("")
+        
+        if message:
+            client.send(message.encode('utf-8'))
 
 if __name__=='__main__':
     main()
