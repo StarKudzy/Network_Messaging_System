@@ -123,7 +123,9 @@ def create_room(client, room_name):
         client.send(f"Room '{room_name}' already exists".encode('utf-8'))
     else:
         rooms[room_name] = []
-        client.send(f"Created '{room_name}' room successfully".encode('utf-8'))    
+        client.send(f"Room '{room_name}' created successfully\n".encode('utf-8'))
+        broadcast(f"Server: New room '{room_name}' has been created.",client, 'main_chat')
+          
         
         
         
@@ -232,7 +234,10 @@ def decline_invite(client):
     client.send(f"You declined the invitation to join {room_name}\n".encode('utf-8'))
     
     
-                
+  #show all available chat rooms
+def show_rooms(client):
+      available_rooms = ",".join(rooms.keys())     
+      client.send(f"Available rooms: {available_rooms}".encode('utf-8'))         
             
             
 # Receives the username and places the client into the main chat
@@ -264,11 +269,18 @@ def handle_client(client):
             client_rooms[client] = 'main_chat'
             rooms["main_chat"].append(client)
 
-            client.send(
-                "You joined main chat\n".encode('utf-8')
-            )
-            print(f"{username} joined main chat\n")        
+            client.send("You joined main chat\n".encode('utf-8'))
+                
+             #loop through clients and inform them that new user has joined chat    
+            for connected_client in clients:
+                if connected_client != client:
+                    connected_client.send(f"Server: {username} has joined the main chat\n".encode('utf-8'))
 
+
+       
+        
+            
+        
         #Sending available rooms to the client
         available_rooms = ", ".join(rooms.keys())
         client.send((
@@ -279,11 +291,14 @@ def handle_client(client):
            "/invite username room_name  - invite a user to a room\n"
            "/accept  - accept a room invitation\n"
            "/decline  - decline a room invitation\n"
-           "/who - show users in current room\n"
-           "/who all - show all connected users\n"
+           "/users - show users in current room\n"
+           "/all users - show all connected users\n"
+           "/rooms - show all available chat rooms\n"
            "/quit  - exit the chat"
            ).encode('utf-8'))
-        broadcast(f"{username} has joined the chat\n", client, 'main_chat')
+        
+        
+        
         
         #keep listening for messages
         while True:
@@ -293,10 +308,12 @@ def handle_client(client):
                 break
             
 
-                #Check if user wants to create a new chat room
+         #check available rooms
+            if message == '/rooms':
+                show_rooms(client)       
 
          #Check if user wants to create a new chat room
-            if message.startswith('/create'):
+            elif message.startswith('/create'):
                 parts = message.split()
 
                 if len(parts) == 2:
@@ -345,11 +362,11 @@ def handle_client(client):
                 decline_invite(client) 
         
         #show users in current room
-            elif message == '/who':
+            elif message == '/users':
                 show_users(client)  
 
         #show all connected users
-            elif message == '/who all':
+            elif message == '/all users':
                 show_all_users(client)
                   
                          
