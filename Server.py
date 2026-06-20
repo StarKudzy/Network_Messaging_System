@@ -20,60 +20,44 @@ rooms = {
     'shirts': []
 }
      
-
-
-
 #function to define username
 def get_username(client):
     if client in clients:
         index = clients.index(client)
         return usernames[index]
-    
     return "unknown"
 
 
 #shows clients connected in the current room
 def show_users(client):
-    current_room = client_rooms[client] #get the room the client is currently in
-    room_users = [] #stores the list of clients connected in the current room
-   #loop through all clients in the room
-    for room_client in rooms[current_room]:
+    current_room = client_rooms[client]     #get the room the client is currently in
+    room_users = []       #stores the list of clients connected in the current room
+    for room_client in rooms[current_room]:     #loop through all clients in the room
         username = get_username(room_client)
         room_users.append(username)
-
     users_list = ", ".join(room_users)
-    
-    #sends list back to the person who requested the list
-    client.send(
-        f"Users in {current_room}: {users_list}".encode('utf-8')
-    )
+    client.send(f"Users in {current_room}: {users_list}".encode('utf-8'))   #sends list back to the person who requested the list
+
 
 #function to show all connected clients
 def show_all_users(client):
-    #check if there are any connected clients
-    if len(usernames) == 0:
+    if len(usernames) == 0:      #check if there are any connected clients
         client.send("No clients connected".encode('utf-8'))
-
     users_list = ", ".join(usernames)
-
-    #send list back to client
-    client.send(
-        f"Connected clients: {users_list}".encode('utf-8')
-    )
+    client.send(f"Connected clients: {users_list}".encode('utf-8'))    #send list back to client
 
 
 # broadcast messages to all clients except the sender
 def broadcast(message, sender_socket = None, room_name='main_chat'):
     
     if room_name in rooms:
-        for client in rooms[room_name]: #loop throgh every client in this room
+        for client in rooms[room_name]:       #loop throgh every client in this room
             if client != sender_socket:
                 try:
                     client.send(message.encode('utf-8'))
                     print("message send successfully")
                 except:
                     #if sending fails maybe the client is disconnected
-                        
                         username = get_username(client)
                         remove_client(client)
                         print(f"client {username} is disconnected")    
@@ -88,34 +72,20 @@ def remove_client(client):
     index = clients.index(client)
     username = usernames[index]
     current_room = client_rooms[client]
+    disconnected_users[username] = current_room       #save room for reconnection
 
-    #save room for reconnection
-    disconnected_users[username] = current_room
-
-    #remove client from the room
-    if client in rooms[current_room]:
+    if client in rooms[current_room]:       #remove client from the room
         rooms[current_room].remove(client)
 
-    #remove client from tracking lists
-    clients.remove(client)
+    clients.remove(client)     #remove client from tracking lists
     usernames.pop(index)
 
     del client_rooms[client]
 
-    #Notify the room
-    broadcast(
-        f"{username} is disconnected", None, current_room
-    )
-    
-    #close the socket connection
-    client.close()
+    broadcast(f"{username} is disconnected", None, current_room)  #Notify the room
+    client.close()          #close the socket connection
     print(f"{username} disconnected")
 
-
-
-            
-            
-            
             
  #creating chat rooms
 def create_room(client, room_name):
@@ -125,13 +95,6 @@ def create_room(client, room_name):
         rooms[room_name] = []
         client.send(f"Room '{room_name}' created successfully\n".encode('utf-8'))
         broadcast(f"Server: New room '{room_name}' has been created.",client, 'main_chat')
-          
-        
-        
-        
-        
-        
-        
         
 #function to switch chat rooms
 def switch_room(client, new_room):
@@ -152,10 +115,6 @@ def switch_room(client, new_room):
     broadcast(f"{username} joined the room", client, new_room)          
     
     
-    
-    
-    
-    
 #function to invite clients to a chat room
 def invite_user(client, invited_username,room_name):
     
@@ -169,9 +128,6 @@ def invite_user(client, invited_username,room_name):
         client.send("User not found".encode('utf-8'))
         return
     
-   
-    
-     
     #find the position of the invited user in the users list,get user socket
     index= usernames.index(invited_username)
     invited_client= clients[index]
@@ -186,12 +142,9 @@ def invite_user(client, invited_username,room_name):
         'room': room_name,
         'inviter': client 
     }
-  
     inviter_username = get_username(client)
     invited_client.send(f"{inviter_username} is inviting you to join {room_name}.Type /accept to join or /decline to reject.".encode('utf-8'))         
     client.send(f"invitation sent to {invited_username}".encode('utf-8'))        
-            
-            
             
             
  #allows users to accept invites           
@@ -218,18 +171,14 @@ def decline_invite(client):
         return
     
     invite_info = pending_invites[client]
-
     room_name = invite_info['room']
     inviter = invite_info['inviter']
 
     declined_user = get_username(client)
     try:
-        inviter.send(
-            f"{declined_user} has declined your invitation to join {room_name}\n".encode('utf-8')
-        )
+        inviter.send( f"{declined_user} has declined your invitation to join {room_name}\n".encode('utf-8'))
     except:
         pass
-    
     del pending_invites[client]
     client.send(f"You declined the invitation to join {room_name}\n".encode('utf-8'))
     
@@ -248,20 +197,14 @@ def handle_client(client):
         
         #checks whether the user has disconnected before
         if username in disconnected_users:
-            #get the previous room
-            room = disconnected_users[username]
-            # add to the list of clients
-            clients.append(client)
+            room = disconnected_users[username]   #get the previous room
+            clients.append(client)       # add to the list of clients
             usernames.append(username)
-            #put them in the same room
-            client_rooms[client] = room
+            client_rooms[client] = room      #put them in the same room
             rooms[room].append(client)
+            del disconnected_users[username]     #remove from disconnected users list
 
-            del disconnected_users[username] #remove from disconnected users list
-
-            client.send(
-                f"Welcome back, you have reconnected to {room}\n".encode('utf-8')
-            )
+            client.send(f"Welcome back, you have reconnected to {room}\n".encode('utf-8'))
         else:  #New user
             clients.append(client)
             usernames.append(username)
@@ -275,11 +218,6 @@ def handle_client(client):
             for connected_client in clients:
                 if connected_client != client:
                     connected_client.send(f"Server: {username} has joined the main chat\n".encode('utf-8'))
-
-
-       
-        
-            
         
         #Sending available rooms to the client
         available_rooms = ", ".join(rooms.keys())
@@ -296,9 +234,7 @@ def handle_client(client):
            "/rooms - show all available chat rooms\n"
            "/quit  - exit the chat"
            ).encode('utf-8'))
-        
-        
-        
+    
         
         #keep listening for messages
         while True:
@@ -306,8 +242,6 @@ def handle_client(client):
             
             if not message: #if message is empty disconnect
                 break
-            
-
          #check available rooms
             if message == '/rooms':
                 show_rooms(client)       
@@ -333,8 +267,7 @@ def handle_client(client):
                 
                 else:
                     client.send("Switch room name\n".encode('utf-8'))    
-          
-         
+        
          #check if user wants to invite another user to a room
             elif message.startswith('/invite'):
                 parts = message.split()
@@ -368,9 +301,6 @@ def handle_client(client):
         #show all connected users
             elif message == '/all users':
                 show_all_users(client)
-                  
-                         
-            
 
             else:
                 current_room = client_rooms[client]
