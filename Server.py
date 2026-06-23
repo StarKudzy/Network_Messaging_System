@@ -193,16 +193,25 @@ def show_rooms(client):
 #continuosly listens for messages from the connected client
 def handle_client(client):
     try:
-        username = client.recv(1024).decode('utf-8') # receives the username from the client 
+
+        while True:
+          username = client.recv(1024).decode('utf-8') # receives the username from the client 
         
+        #checks whether username is unique
+          if username in usernames:
+            client.send("Username is already taken! Enter another username: ".encode('utf-8'))
+            continue
+            
+          client.send("Username accepted.\n".encode('utf-8'))
+          break
         #checks whether the user has disconnected before
         if username in disconnected_users:
             room = disconnected_users[username]   #get the previous room
-            clients.append(client)       # add to the list of clients
+            clients.append(client)      
             usernames.append(username)
-            client_rooms[client] = room      #put them in the same room
+            client_rooms[client] = room #put them back in the same room
             rooms[room].append(client)
-            del disconnected_users[username]     #remove from disconnected users list
+            del disconnected_users[username]    
 
             client.send(f"Welcome back, you have reconnected to {room}\n".encode('utf-8'))
         else:  #New user

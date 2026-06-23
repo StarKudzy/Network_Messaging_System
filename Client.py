@@ -46,8 +46,17 @@ def main():
     
     
     #ask for username and send it to server
-    username = input("Enter your username:  ")
-    client.send(username.encode('utf-8'))
+    while True:
+        username = input("Enter your username:  ")
+        client.send(username.encode('utf-8'))
+
+        response = client.recv(1024).decode('utf-8')
+        print(response)
+
+        if "Username accepted" in response:
+            break
+
+    
     
     
     threading.Thread(target=receive_messages, args=(client,)).start()
